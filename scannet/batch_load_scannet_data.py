@@ -1,5 +1,5 @@
 # Copyright (c) Facebook, Inc. and its affiliates.
-# 
+#
 # This source code is licensed under the MIT license found in the
 # LICENSE file in the root directory of this source tree.
 
@@ -21,13 +21,13 @@ LABEL_MAP_FILE = 'meta_data/scannetv2-labels.combined.tsv'
 DONOTCARE_CLASS_IDS = np.array([])
 OBJ_CLASS_IDS = np.array([3,4,5,6,7,8,9,10,11,12,14,16,24,28,33,34,36,39])
 MAX_NUM_POINT = 50000
-OUTPUT_FOLDER = './scannet_train_detection_data'
+OUTPUT_FOLDER = '/home/sirdome/katefgroup/language_grounding/scannet_train_detection_data'
 
-def export_one_scan(scan_name, output_filename_prefix):    
+def export_one_scan(scan_name, output_filename_prefix):
     mesh_file = os.path.join(SCANNET_DIR, scan_name, scan_name + '_vh_clean_2.ply')
     agg_file = os.path.join(SCANNET_DIR, scan_name, scan_name + '.aggregation.json')
     seg_file = os.path.join(SCANNET_DIR, scan_name, scan_name + '_vh_clean_2.0.010000.segs.json')
-    meta_file = os.path.join(SCANNET_DIR, scan_name, scan_name + '.txt') # includes axisAlignment info for the train set scans.   
+    meta_file = os.path.join(SCANNET_DIR, scan_name, scan_name + '.txt') # includes axisAlignment info for the train set scans.
     mesh_vertices, semantic_labels, instance_labels, instance_bboxes, instance2semantic = \
         export(mesh_file, agg_file, seg_file, meta_file, LABEL_MAP_FILE, None)
 
@@ -57,23 +57,23 @@ def export_one_scan(scan_name, output_filename_prefix):
 
 def batch_export():
     if not os.path.exists(OUTPUT_FOLDER):
-        print('Creating new data folder: {}'.format(OUTPUT_FOLDER))                
-        os.mkdir(OUTPUT_FOLDER)        
-        
+        print('Creating new data folder: {}'.format(OUTPUT_FOLDER))
+        os.mkdir(OUTPUT_FOLDER)
+
     for scan_name in TRAIN_SCAN_NAMES:
         print('-'*20+'begin')
         print(datetime.datetime.now())
         print(scan_name)
-        output_filename_prefix = os.path.join(OUTPUT_FOLDER, scan_name) 
+        output_filename_prefix = os.path.join(OUTPUT_FOLDER, scan_name)
         if os.path.isfile(output_filename_prefix+'_vert.npy'):
             print('File already exists. skipping.')
             print('-'*20+'done')
             continue
-        try:            
+        try:
             export_one_scan(scan_name, output_filename_prefix)
         except:
-            print('Failed export scan: %s'%(scan_name))            
+            print('Failed export scan: %s'%(scan_name))
         print('-'*20+'done')
 
-if __name__=='__main__':    
+if __name__=='__main__':
     batch_export()
