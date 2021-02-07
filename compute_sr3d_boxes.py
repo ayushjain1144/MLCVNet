@@ -124,9 +124,9 @@ if CHECKPOINT_PATH is not None and os.path.isfile(CHECKPOINT_PATH):
     log_string("Loaded checkpoint %s (epoch: %d)"%(CHECKPOINT_PATH, epoch))
 
 # Used for AP calculation
-CONFIG_DICT = {'remove_empty_box': (not FLAGS.faster_eval), 'use_3d_nms': FLAGS.use_3d_nms, 'nms_iou': FLAGS.nms_iou,
-    'use_old_type_nms': FLAGS.use_old_type_nms, 'cls_nms': FLAGS.use_cls_nms, 'per_class_proposal': FLAGS.per_class_proposal,
-    'conf_thresh': FLAGS.conf_thresh, 'dataset_config':DATASET_CONFIG}
+CONFIG_DICT = {'remove_empty_box': True, 'use_3d_nms': True, 'nms_iou': 0.25,
+        'use_old_type_nms': False, 'cls_nms': False, 'per_class_proposal': False,
+        'conf_thresh': 0.5, 'dataset_config': DATASET_CONFIG}
 # ------------------------------------------------------------------------- GLOBAL CONFIG END
 
 def evaluate_one_epoch():
@@ -171,22 +171,63 @@ def evaluate_one_epoch():
 
         
         ######## Saving data ########
-        save_dir = '/home/sirdome/katefgroup/language_grounding/mlcvnet_dump'  
+        save_dir = '/home/sirdome/katefgroup/language_grounding/mlcvnet_dump' 
 
-        for i in range(len(scan_name_list)): 
+        # INPUT
+        point_clouds = end_points['point_clouds'].cpu().numpy()
+        batch_size = point_clouds.shape[0]
+
+        # NETWORK OUTPUTS
+        seed_xyz = end_points['seed_xyz'].detach().cpu().numpy() # (B,num_seed,3)
+        if 'vote_xyz' in end_points:
+            aggregated_vote_xyz = end_points['aggregated_vote_xyz'].detach().cpu().numpy()
+            vote_xyz = end_points['vote_xyz'].detach().cpu().numpy() # (B,num_seed,3)
+            aggregated_vote_xyz = end_points['aggregated_vote_xyz'].detach().cpu().numpy()
+        objectness_scores = end_points['objectness_scores'].detach().cpu().numpy() # (B,K,2)
+        pred_center = end_points['center'].detach().cpu().numpy() # (B,K,3)
+        pred_heading_class = torch.argmax(end_points['heading_scores'], -1) # B,num_proposal
+        pred_heading_residual = torch.gather(end_points['heading_residuals'], 2, pred_heading_class.unsqueeze(-1)) # B,num_proposal,1
+        pred_heading_class = pred_heading_class.detach().cpu().numpy() # B,num_proposal
+        pred_heading_residual = pred_heading_residual.squeeze(2).detach().cpu().numpy() # B,num_proposal
+        pred_size_class = torch.argmax(end_points['size_scores'], -1) # B,num_proposal
+        pred_size_residual = torch.gather(end_points['size_residuals'], 2, pred_size_class.unsqueeze(-1).unsqueeze(-1).repeat(1,1,1,3)) # B,num_proposal,1,3
+        pred_size_residual = pred_size_residual.squeeze(2).detach().cpu().numpy() # B,num_proposal,3
+
+        # OTHERS
+        pred_mask = end_points['pred_mask'] # B,num_proposal
+        idx_beg = 0
+
+        for i in range(batch_size):
+            objectness_prob = softmax(objectness_scores[i,:,:])[:,1] # (K,)
+
+            # Dump predicted bounding boxes
+            if np.sum(objectness_prob>0.5)>0:
+                num_proposal = pred_center.shape[1]
+                sr3d_boxes = []
+                for j in range(num_proposal):
+                    sr3d_box = convert_mlcvnetbox_to_sr3d(DATASET_CONFIG, pred_center[i,j,0:3], 
+                                                pred_size_class[i,j], pred_size_residual[i,j])
+                    sr3d_boxes.append(sr3d_box)
+                if len(sr3d_boxes)>0:
+                    sr3d_boxes = np.vstack(tuple(sr3d_boxes)) # (num_proposal, 6)
+                    # Output boxes according to their semantic labels
+                    pred_sem_cls = torch.argmax(end_points['sem_cls_scores'], -1) # B,num_proposal
+                    pred_sem_cls = pred_sem_cls.detach().cpu().numpy()
+                    mask = np.logical_and(objectness_prob>0.5, pred_mask[i,:]==1)
+                    sr3d_boxes = sr3d_boxes[mask, :]
+                
+                sr3d_boxes = list(sr3d_boxes)
+            
             scan_name = scan_name_list[i]
             class_label_list = [DATASET_CONFIG.class2type[p[0]] for p in batch_pred_map_cls[i]]
 
-            print(class_label_list)
+            print(len(class_label_list))
 
-            pred_box_list = [_convert_all_corners_to_end_points(
-                                                p[1]
-                                            ) 
-                                                for p in batch_pred_map_cls[i]]
+            assert(len(sr3d_boxes) == len(class_label_list))
 
             data_dict = {
                 "class": class_label_list,
-                "box": pred_box_list
+                "box": sr3d_boxes
             }
 
             np.save(f'{save_dir}/{scan_name}.npy', data_dict)
@@ -215,6 +256,20 @@ def eval():
     np.random.seed()
     loss = evaluate_one_epoch()
 
+def convert_mlcvnetbox_to_sr3d(DC, center, size_class, size_residual):
+    box_size = DC.class2size(int(size_class), size_residual)
+
+    lx, ly, lz = box_size
+    xc, yc, zc = center
+
+    xmin = xc - (lx / 2.0)
+    ymin = yc - (ly / 2.0)
+    zmin = zc - (lz / 2.0)
+    xmax = xc + (lx / 2.0)
+    ymax = yc + (ly / 2.0)
+    zmax = zc + (lz / 2.0)
+
+    return np.array([xmin, ymin, zmin, xmax, ymax, zmax])
 
 def _convert_all_corners_to_end_points(box):
     """ converts 8X3 box to end points """
@@ -223,6 +278,12 @@ def _convert_all_corners_to_end_points(box):
 
     return np.array([xmin, ymin, zmin, xmax, ymax, zmax]) 
 
+def softmax(x):
+    ''' Numpy function for softmax'''
+    shape = x.shape
+    probs = np.exp(x - np.max(x, axis=len(shape)-1, keepdims=True))
+    probs /= np.sum(probs, axis=len(shape)-1, keepdims=True)
+    return probs
 
 if __name__=='__main__':
     eval()
