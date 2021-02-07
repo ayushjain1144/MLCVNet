@@ -15,7 +15,7 @@ import time
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--num_point', type=int, default=40000, help='Point Number [default: 40000]')
-parser.add_argument('--scene_name', default='scene0609_02_vh_clean_2.ply', help='Scene name. [default: scene0609_02_vh_clean_2.ply]')
+parser.add_argument('--scene_name', default='scene0629_00_vh_clean_2.ply', help='Scene name. [default: scene0609_02_vh_clean_2.ply]')
 FLAGS = parser.parse_args()
 
 import torch
@@ -90,7 +90,9 @@ if __name__=='__main__':
     end_points['point_clouds'] = inputs['point_clouds']
     pred_map_cls = parse_predictions(end_points, eval_config_dict)
     print('Finished detection. %d object detected.'%(len(pred_map_cls[0])))
-  
+    
+    class_label_list = [DC.class2type[p[0]] for p in pred_map_cls[0]]
+    print(class_label_list)
     dump_dir = os.path.join(demo_dir, FLAGS.scene_name.split('.')[0])
     if not os.path.exists(dump_dir): os.mkdir(dump_dir) 
     MODEL.dump_results(end_points, dump_dir, DC, True)

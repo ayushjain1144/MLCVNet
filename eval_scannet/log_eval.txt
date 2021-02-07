@@ -1,1 +1,92 @@
 Namespace(DUMP_DIR='eval_scannet', ap_iou_thresholds='0.25,0.5', batch_size=8, checkpoint_path='demo_files/pretrained_mlcvnet_on_scannet.tar', cluster_sampling='seed_fps', conf_thresh=0.05, dataset='scannet', dump_dir='eval_scannet', faster_eval=False, nms_iou=0.25, no_height=False, num_point=40000, num_target=256, per_class_proposal=True, shuffle_dataset=False, use_3d_nms=True, use_cls_nms=True, use_color=False, use_old_type_nms=False, use_sunrgbd_v2=False, vote_factor=1)
+Loaded checkpoint demo_files/pretrained_mlcvnet_on_scannet.tar (epoch: 250)
+2021-02-07 01:08:52.323870
+eval mean box_loss: 0.136489
+eval mean center_loss: 0.044220
+eval mean heading_cls_loss: 0.000000
+eval mean heading_reg_loss: 0.000000
+eval mean loss: 5.981353
+eval mean neg_ratio: 0.609533
+eval mean obj_acc: 0.803935
+eval mean objectness_loss: 0.141176
+eval mean pos_ratio: 0.390467
+eval mean sem_cls_loss: 0.545093
+eval mean size_cls_loss: 0.545094
+eval mean size_reg_loss: 0.037759
+eval mean vote_loss: 0.336549
+eval cabinet Average Precision: 0.460802
+eval bed Average Precision: 0.895350
+eval chair Average Precision: 0.890469
+eval sofa Average Precision: 0.872822
+eval table Average Precision: 0.639081
+eval door Average Precision: 0.551527
+eval window Average Precision: 0.441674
+eval bookshelf Average Precision: 0.614200
+eval picture Average Precision: 0.128758
+eval counter Average Precision: 0.579790
+eval desk Average Precision: 0.691402
+eval curtain Average Precision: 0.560434
+eval refrigerator Average Precision: 0.600013
+eval showercurtrain Average Precision: 0.713860
+eval toilet Average Precision: 0.972636
+eval sink Average Precision: 0.524225
+eval bathtub Average Precision: 0.902799
+eval garbagebin Average Precision: 0.489870
+eval mAP: 0.640540
+eval cabinet Recall: 0.787634
+eval bed Recall: 0.949367
+eval chair Recall: 0.921502
+eval sofa Recall: 0.977528
+eval table Recall: 0.837580
+eval door Recall: 0.735808
+eval window Recall: 0.649635
+eval bookshelf Recall: 0.857143
+eval picture Recall: 0.301802
+eval counter Recall: 0.846154
+eval desk Recall: 0.936000
+eval curtain Recall: 0.731343
+eval refrigerator Recall: 0.929825
+eval showercurtrain Recall: 0.857143
+eval toilet Recall: 0.982759
+eval sink Recall: 0.642857
+eval bathtub Recall: 0.935484
+eval garbagebin Recall: 0.706458
+eval AR: 0.810334
+eval cabinet Average Precision: 0.187089
+eval bed Average Precision: 0.815324
+eval chair Average Precision: 0.743505
+eval sofa Average Precision: 0.797550
+eval table Average Precision: 0.514248
+eval door Average Precision: 0.254424
+eval window Average Precision: 0.185117
+eval bookshelf Average Precision: 0.502736
+eval picture Average Precision: 0.018928
+eval counter Average Precision: 0.322026
+eval desk Average Precision: 0.429015
+eval curtain Average Precision: 0.283481
+eval refrigerator Average Precision: 0.342510
+eval showercurtrain Average Precision: 0.037389
+eval toilet Average Precision: 0.790643
+eval sink Average Precision: 0.274433
+eval bathtub Average Precision: 0.856221
+eval garbagebin Average Precision: 0.281598
+eval mAP: 0.424235
+eval cabinet Recall: 0.459677
+eval bed Recall: 0.873418
+eval chair Recall: 0.790956
+eval sofa Recall: 0.887640
+eval table Recall: 0.697452
+eval door Recall: 0.427948
+eval window Recall: 0.299270
+eval bookshelf Recall: 0.701299
+eval picture Recall: 0.054054
+eval counter Recall: 0.519231
+eval desk Recall: 0.672000
+eval curtain Recall: 0.358209
+eval refrigerator Recall: 0.649123
+eval showercurtrain Recall: 0.214286
+eval toilet Recall: 0.810345
+eval sink Recall: 0.377551
+eval bathtub Recall: 0.870968
+eval garbagebin Recall: 0.457926
+eval AR: 0.562297

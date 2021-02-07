@@ -17,6 +17,8 @@ from eval_det import get_iou_obb
 from nms import nms_2d_faster, nms_3d_faster, nms_3d_faster_samecls
 from box_util import get_3d_box
 sys.path.append(os.path.join(ROOT_DIR, 'sunrgbd'))
+import ipdb
+st = ipdb.set_trace
 #from sunrgbd_utils import extract_pc_in_box3d
 
 def in_hull(p, hull):
@@ -99,7 +101,7 @@ def parse_predictions(end_points, config_dict):
 
     K = pred_center.shape[1] # K==num_proposal
     nonempty_box_mask = np.ones((bsize, K))
-
+    # st()
     if config_dict['remove_empty_box']:
         # -------------------------------------
         # Remove predicted boxes without any point within them..

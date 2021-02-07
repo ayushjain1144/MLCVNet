@@ -20,6 +20,8 @@ BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 ROOT_DIR = BASE_DIR
 sys.path.append(os.path.join(ROOT_DIR, 'models'))
 from ap_helper import APCalculator, parse_predictions, parse_groundtruths
+import ipdb
+st = ipdb.set_trace
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--dataset', default='scannet', help='Dataset name. sunrgbd or scannet. [default: scannet]')
