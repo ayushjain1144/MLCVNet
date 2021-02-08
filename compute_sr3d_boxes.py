@@ -22,6 +22,7 @@ sys.path.append(os.path.join(ROOT_DIR, 'models'))
 from ap_helper import APCalculator, parse_predictions, parse_groundtruths
 import ipdb
 st = ipdb.set_trace
+from box_util import get_3d_box
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--dataset', default='scannet', help='Dataset name. sunrgbd or scannet. [default: scannet]')
@@ -196,6 +197,7 @@ def evaluate_one_epoch():
         # OTHERS
         pred_mask = end_points['pred_mask'] # B,num_proposal
         idx_beg = 0
+        pred_center_upright_camera = flip_axis_to_camera(pred_center)
 
         for i in range(batch_size):
             objectness_prob = softmax(objectness_scores[i,:,:])[:,1] # (K,)
@@ -205,9 +207,21 @@ def evaluate_one_epoch():
                 num_proposal = pred_center.shape[1]
                 sr3d_boxes = []
                 for j in range(num_proposal):
-                    sr3d_box = convert_mlcvnetbox_to_sr3d(DATASET_CONFIG, pred_center[i,j,0:3], 
-                                                pred_size_class[i,j], pred_size_residual[i,j])
+                    
+                    heading_angle = CONFIG_DICT['dataset_config'].class2angle(\
+                        pred_heading_class[i,j], pred_heading_residual[i,j])
+                    box_size = CONFIG_DICT['dataset_config'].class2size(\
+                        int(pred_size_class[i,j]), pred_size_residual[i,j])
+
+                    corners_3d_upright_camera = get_3d_box(box_size, heading_angle, pred_center_upright_camera[i,j,:])
+                    box3d = corners_3d_upright_camera
+                    box3d = flip_axis_to_depth(box3d)
+
+                    sr3d_box = _convert_all_corners_to_end_points(box3d)
+                    # sr3d_box = convert_mlcvnetbox_to_sr3d(DATASET_CONFIG, pred_center[i,j,0:3], 
+                                                # pred_size_class[i,j], pred_size_residual[i,j])
                     sr3d_boxes.append(sr3d_box)
+
                 if len(sr3d_boxes)>0:
                     sr3d_boxes = np.vstack(tuple(sr3d_boxes)) # (num_proposal, 6)
                     # Output boxes according to their semantic labels
@@ -227,7 +241,8 @@ def evaluate_one_epoch():
 
             data_dict = {
                 "class": class_label_list,
-                "box": sr3d_boxes
+                "box": sr3d_boxes,
+                "pc": point_clouds[i]
             }
 
             np.save(f'{save_dir}/{scan_name}.npy', data_dict)
@@ -258,7 +273,8 @@ def eval():
 
 def convert_mlcvnetbox_to_sr3d(DC, center, size_class, size_residual):
     box_size = DC.class2size(int(size_class), size_residual)
-
+    corners_3d_upright_camera = get_3d_box(box_size, heading_angle, pred_center_upright_camera[i,j,:])
+    pred_corners_3d_upright_camera[i,j] = corners_3d_upright_camera
     lx, ly, lz = box_size
     xc, yc, zc = center
 
@@ -284,6 +300,32 @@ def softmax(x):
     probs = np.exp(x - np.max(x, axis=len(shape)-1, keepdims=True))
     probs /= np.sum(probs, axis=len(shape)-1, keepdims=True)
     return probs
+
+def flip_axis_to_camera(pc):
+    ''' Flip X-right,Y-forward,Z-up to X-right,Y-down,Z-forward
+    Input and output are both (N,3) array
+    '''
+    pc2 = np.copy(pc)
+    pc2[...,[0,1,2]] = pc2[...,[0,2,1]] # cam X,Y,Z = depth X,-Z,Y
+    pc2[...,1] *= -1
+    return pc2
+
+def flip_axis_to_depth(pc):
+    pc2 = np.copy(pc)
+    pc2[...,[0,1,2]] = pc2[...,[0,2,1]] # depth X,Y,Z = cam X,Z,-Y
+    pc2[...,2] *= -1
+    return pc2
+
+def in_hull(p, hull):
+    from scipy.spatial import Delaunay
+    if not isinstance(hull,Delaunay):
+        hull = Delaunay(hull)
+    return hull.find_simplex(p)>=0
+
+def extract_pc_in_box3d(pc, box3d):
+    ''' pc: (N,3), box3d: (8,3) '''
+    box3d_roi_inds = in_hull(pc[:,0:3], box3d)
+    return pc[box3d_roi_inds,:], box3d_roi_inds
 
 if __name__=='__main__':
     eval()
